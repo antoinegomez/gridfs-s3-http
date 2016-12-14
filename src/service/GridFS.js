@@ -5,16 +5,13 @@ import config from 'config';
 import fs from 'fs';
 import fnv from 'fnv-plus';
 import _ from 'lodash';
+import createError from 'http-errors';
+
 
 export class GridFSServiceClass  {
 
   loadDefaultOptions() {
-    return {
-      adapter: {
-        name: 'native',
-        connection: config.mongodb,
-      }
-    };
+    return config.gridfs;
   }
 
   constructor(opts) {
@@ -68,25 +65,25 @@ export class GridFSServiceClass  {
     return options;
   }
 
-  async putObject(file, _options) {
+  async putObject(input, _options) {
     await this.ensureConnection();
 
     const options = this._patchOptions(_options);
 
     if (!options._id) {
-      throw new Error('Cannot update object without filename or _id');
+      throw new createError.BadRequest('Cannot update object without filename or _id');
     }
 
     try {
       const res = await new Promise((resolve, reject) => {
         this.getGrid(options).createWriteStream(options, (err, writestream) => {
           if (writestream) {
-            const stream = fs.createReadStream(file).pipe(writestream);
+            const stream = input.pipe(writestream);
             stream.on('close', resolve);
             stream.on('err', reject);
           } else {
             // Stream couldn't be created because a write lock was not available
-            reject(new Error('Locked'));
+            reject(new createError.BadRequest('Locked'));
           }
         });
       });
@@ -101,13 +98,13 @@ export class GridFSServiceClass  {
     const metadata = await this.getObjectMetadata(_options);
 
     if (!metadata) {
-      throw new Error('Not found');
+      throw createError.NotFound('Not found');
     }
 
     const content = await this.getObjectContent(_options);
 
     if (!content) {
-      throw new Error('Not found');
+      throw new createError.NotFound('Not found');
     }
 
     return { metadata, content };
@@ -119,7 +116,7 @@ export class GridFSServiceClass  {
     const options = this._patchOptions(_options);
 
     if (!options._id) {
-      throw new Error('Cannot get object without filename or _id');
+      throw new createError.BadRequest('Cannot get object without filename or _id');
     }
 
     return await new Promise((resolve, reject) => {
@@ -128,7 +125,7 @@ export class GridFSServiceClass  {
           resolve(readstream);
         } else {
           // Stream couldn't be created because a read lock was not available
-          reject(new Error('Locked'));
+          reject(new createError.BadRequest('Locked'));
         }
       });
     });
@@ -140,7 +137,7 @@ export class GridFSServiceClass  {
     const options = this._patchOptions(_options);
 
     if (!options._id) {
-      throw new Error('Cannot get object metadata without filename or _id');
+      throw new createError.BadRequest('Cannot get object metadata without filename or _id');
     }
 
     return await new Promise((resolve, reject) => {
@@ -162,17 +159,17 @@ export class GridFSServiceClass  {
     const options = this._patchOptions(_options);
 
     if (!options._id) {
-      throw new Error('Cannot remove object without filename or _id');
+      throw new createError.BadRequest('Cannot remove object without filename or _id');
     }
 
     return await new Promise((resolve, reject) => {
-      this._gfs.remove(options, (err, result) => {
+      this.getGrid(options).remove(options, (err, result) => {
         if (err) {
           reject(err);
         } else if (result) {
           resolve(result);
         } else {
-          reject(new Error('Failed to acquire lock'));
+          reject(new createError.BadRequest('Failed to acquire lock'));
         }
       });
     });

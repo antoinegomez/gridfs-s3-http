@@ -20,21 +20,17 @@ export class MongodbNativeClass {
   }
 
   async whenReady() {
-    console.log('Ready ?');
     if (this.isConnected()) {
-      console.log('Yes');
       return Promise.resolve();
     }
 
     return await new Promise((resolve, reject) => {
-      console.log('Opening');
       this.db.open((err) => {
         if (err) {
           reject(err);
           return;
         }
 
-        console.log('opened');
         this._isReady = true;
         resolve(this.db);
       })

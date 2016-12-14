@@ -1,3 +1,14 @@
-mongodb:
-  host: localhost
-  database: gridfs_http
+server:
+  port: 3000
+
+gridfs:
+  default_root_fs: fs
+  adapter:
+    name: native
+    connection:
+      host: localhost
+      database: gridfs_http
+
+koa:
+  body:
+    formLimit: 100mb

@@ -1,12 +1,12 @@
 {
   "name": "gridfs-s3-http",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "GridFS HTTP frontend compatible with Amazon S3 API",
-  "main": "index.js",
+  "main": "build/index.js",
   "scripts": {
     "test": "npm test",
     "build": "babel src -d build",
-    "build2": "babel test -d lib"
+    "postinstall": "npm run build"
   },
   "keywords": [
     "gridfs",
@@ -19,14 +19,24 @@
   "license": "ISC",
   "devDependencies": {
     "babel-cli": "^6.18.0",
-    "babel-preset-latest": "^6.16.0"
+    "babel-plugin-transform-async-to-generator": "~6.16.0",
+    "babel-plugin-transform-es2015-modules-commonjs": "~6.18.0"
   },
   "dependencies": {
-    "gridfs-locking-stream": "~1.1.1",
     "config": "~1.24.0",
-    "js-yaml": "~3.7.0",
     "fnv-plus": "~1.2.12",
+    "gridfs-locking-stream": "~1.1.1",
+    "http-errors": "~1.5.1",
+    "js-yaml": "~3.7.0",
     "koa": "~2.0.0-alpha.7",
-    "mongodb": "~2.2.12"
+    "koa-bunyan-logger": "~1.3.0",
+    "koa-router": "~6.0.0",
+    "lodash": "~4.17.2",
+    "media-typer": "~0.3.0",
+    "mongodb": "~2.2.12",
+    "raw-body": "~2.1.7"
+  },
+  "engines": {
+    "node": ">=4.0.0"
   }
 }

@@ -1,27 +1,30 @@
 'use strict';
 
+import config from 'config';
 import { GridFSService } from '../service';
 import koa from 'koa';
 import KoaRouter from 'koa-router';
 import url from 'url';
+import stream from 'stream';
+import koaBunyanLogger from 'koa-bunyan-logger';
 
+const port = config.server.port || process.env.PORT || 3000;
 const app = new koa();
 const router = new KoaRouter();
 
 const GridFSServiceInstance = GridFSService();
 
-app.use(async (ctx, next) => {
-  const startTime = new Date().getTime();
-  await next();
-  const endTime = new Date().getTime();
-  console.log(`Request time: ${endTime - startTime}ms`);
-});
+app.use(koaBunyanLogger());
+app.use(koaBunyanLogger.requestIdContext());
+app.use(koaBunyanLogger.requestLogger());
 
 app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
-    console.error(err.stack);
+    if (err.status) {
+      ctx.status = err.status;
+    }
     ctx.body = err;
   }
 });
@@ -32,7 +35,7 @@ app.use(async (ctx, next) => {
     const bucket = urlObject.hostname.split('.').shift();
     ctx.bucket = bucket;
   } else {
-    ctx.bucket = 'fs';
+    ctx.bucket = config.gridfs.default_root_fs;
   }
 
   await next();
@@ -41,11 +44,24 @@ app.use(async (ctx, next) => {
 router.put('/:key', async (ctx) => {
   const options = {
     filename: ctx.params.key,
-    content_type: 'text/plain',
+    content_type: ctx.request.headers['content-type'],
     root: ctx.bucket,
   };
 
-  ctx.body = await GridFSServiceInstance.putObject(`${__dirname}/../../test.txt`, options);
+  const getRawBody = require('raw-body')
+  const string = await getRawBody(ctx.req, {
+    length: ctx.length,
+    limit: '10mb',
+    encoding: ctx.charset
+  });
+
+  const input = new stream.Readable();
+  input.push(string);
+  input.push(null);
+
+  const content = await GridFSServiceInstance.putObject(input, options);
+  ctx.set('ETag', content.md5);
+  ctx.body = '';
 });
 
 router.get('/:key', async (ctx) => {
@@ -55,6 +71,8 @@ router.get('/:key', async (ctx) => {
   };
 
   const object = await GridFSServiceInstance.getObject(options);
+  ctx.set('ETag', object.metadata.md5);
+  ctx.set('Content-Length', object.metadata.length);
   ctx.type = object.metadata.contentType;
   ctx.body = object.content;
 });
@@ -67,6 +85,6 @@ app
 .use(router.routes())
 .use(router.allowedMethods());
 
-app.listen(3000, () => {
+app.listen(port, () => {
   console.log('listening...');
 });

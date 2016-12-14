@@ -2,8 +2,9 @@
 
 import { Native } from './Native';
 import mongo from 'mongodb';
-const Grid = require('gridfs-locking-stream');
+import config from 'config';
 
+const Grid = require('gridfs-locking-stream');
 
 export class GridFSClass {
 
@@ -17,7 +18,7 @@ export class GridFSClass {
     this._gfs = null;
     this._isReady = false;
     this.opts = opts;
-    this._defaultRootFs = 'fs';
+    this._defaultRootFs = config.gridfs.default_root_fs;
   }
 
   getDb() {
@@ -46,7 +47,6 @@ export class GridFSClass {
   }
 
   async connect() {
-    console.log(this.opts.adapter);
     this._adapter = this.selectAdapter()(this.opts.adapter);
     this._adapter.connect();
     this._db = await this._adapter.whenReady();
