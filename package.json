@@ -1,0 +1,32 @@
+{
+  "name": "gridfs-s3-http",
+  "version": "0.0.1",
+  "description": "GridFS HTTP frontend compatible with Amazon S3 API",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test",
+    "build": "babel src -d build",
+    "build2": "babel test -d lib"
+  },
+  "keywords": [
+    "gridfs",
+    "http",
+    "frontend",
+    "amazon",
+    "s3"
+  ],
+  "author": "Antoine Gomez",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-preset-latest": "^6.16.0"
+  },
+  "dependencies": {
+    "gridfs-locking-stream": "~1.1.1",
+    "config": "~1.24.0",
+    "js-yaml": "~3.7.0",
+    "fnv-plus": "~1.2.12",
+    "koa": "~2.0.0-alpha.7",
+    "mongodb": "~2.2.12"
+  }
+}
