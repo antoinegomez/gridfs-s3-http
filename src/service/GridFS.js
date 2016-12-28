@@ -65,6 +65,29 @@ export class GridFSServiceClass  {
     return options;
   }
 
+  async postObject(input, _options) {
+    await this.ensureConnection();
+
+    const options = this._patchOptions(_options);
+
+    if (!options._id) {
+      throw new createError.BadRequest('Cannot create object without filename or _id');
+    }
+
+    return await new Promise((resolve, reject) => {
+      this.getGrid(options).createWriteStream(options, (err, writestream) => {
+        if (writestream) {
+          const stream = input.pipe(writestream);
+          stream.on('close', resolve);
+          stream.on('err', reject);
+        } else {
+          // Stream couldn't be created because a write lock was not available
+          reject(new createError.BadRequest('Locked'));
+        }
+      });
+    });
+  }
+
   async putObject(input, _options) {
     await this.ensureConnection();
 
@@ -74,24 +97,19 @@ export class GridFSServiceClass  {
       throw new createError.BadRequest('Cannot update object without filename or _id');
     }
 
-    try {
-      const res = await new Promise((resolve, reject) => {
-        this.getGrid(options).createWriteStream(options, (err, writestream) => {
-          if (writestream) {
-            const stream = input.pipe(writestream);
-            stream.on('close', resolve);
-            stream.on('err', reject);
-          } else {
-            // Stream couldn't be created because a write lock was not available
-            reject(new createError.BadRequest('Locked'));
-          }
-        });
-      });
 
-      return res;
-    } catch (err) {
-      console.error(err);
-    }
+    return await new Promise((resolve, reject) => {
+      this.getGrid(options).createWriteStream(options, (err, writestream) => {
+        if (writestream) {
+          const stream = input.pipe(writestream);
+          stream.on('close', resolve);
+          stream.on('err', reject);
+        } else {
+          // Stream couldn't be created because a write lock was not available
+          reject(new createError.BadRequest('Locked'));
+        }
+      });
+    });
   }
 
   async getObject(_options) {

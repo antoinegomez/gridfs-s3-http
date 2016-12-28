@@ -7,6 +7,10 @@ import KoaRouter from 'koa-router';
 import url from 'url';
 import stream from 'stream';
 import koaBunyanLogger from 'koa-bunyan-logger';
+import koaBody from 'koa-better-body';
+import koaConvert from 'koa-convert';
+import _ from 'lodash';
+import fs from 'fs';
 
 const port = config.server.port || process.env.PORT || 3000;
 const app = new koa();
@@ -25,7 +29,7 @@ app.use(async (ctx, next) => {
     if (err.status) {
       ctx.status = err.status;
     }
-    ctx.body = err;
+    ctx.body = _.pick(err, 'message', 'key', 'code', 'status');
   }
 });
 
@@ -39,6 +43,30 @@ app.use(async (ctx, next) => {
   }
 
   await next();
+});
+
+router.post('/', koaConvert(koaBody()), async (ctx) => {
+  const file = ctx.request.files[0];
+
+  Object.keys(ctx.request.fields).some(key => {
+    if (key.toLowerCase() === 'content-type') {
+      ctx.request.fields['content-type'] = ctx.request.fields[key];
+      delete ctx.request.fields[key];
+      return true;
+    }
+  });
+
+  const options = {
+    filename: ctx.request.fields.key,
+    content_type: ctx.request.fields['content-type'] || file.type,
+    root: ctx.bucket,
+  };
+
+
+  const input = fs.createReadStream(file.path);
+  const content = await GridFSServiceInstance.putObject(input, options);
+  ctx.set('ETag', content.md5);
+  ctx.body = '';
 });
 
 router.put('/:key', async (ctx) => {
@@ -86,5 +114,5 @@ app
 .use(router.allowedMethods());
 
 app.listen(port, () => {
-  console.log('listening...');
+  console.log(`listening on port ${port}...`);
 });
